@@ -2,6 +2,14 @@
 
 This folder contains screenshots showcasing the beautiful UI and features of ExpenseFlow.
 
+## 🚀 Quick Upload Instructions
+
+**To upload your screenshots:**
+1. Save your 3 screenshots as: `dashboard.png`, `add-expense-form.png`, `expense-cards.png`
+2. Copy them to this `screenshots/` folder
+3. Run: `./upload-screenshots.sh` from the project root
+4. Or manually: `git add screenshots/ && git commit -m "📸 Add screenshots" && git push`
+
 ## 📱 Application Screenshots
 
 ### 1. Dashboard Overview
