@@ -13,32 +13,32 @@ import org.springframework.web.bind.annotation.GetMapping;
 public class WebController {
 
     /**
-     * Serve the login page for root path
+     * Redirect root path to login page
      *
-     * @return the login page
+     * @return redirect to login page
      */
     @GetMapping("/")
     public String index() {
-        return "login";
+        return "redirect:/login.html";
     }
 
     /**
-     * Serve the dashboard page for authenticated users
+     * Redirect dashboard to main app page for authenticated users
      *
-     * @return the dashboard page
+     * @return redirect to main app page
      */
     @GetMapping("/dashboard")
     public String dashboard() {
-        return "index";
+        return "redirect:/index.html";
     }
 
     /**
-     * Serve login page for any other unmatched paths
+     * Redirect login to login page
      *
-     * @return the login page
+     * @return redirect to login page
      */
     @GetMapping("/login")
     public String login() {
-        return "login";
+        return "redirect:/login.html";
     }
 }

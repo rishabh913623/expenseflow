@@ -54,8 +54,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
                 .requestMatchers("/css/**", "/js/**", "/images/**").permitAll()
-                .requestMatchers("/", "/index.html", "/login.html").permitAll()
-                .requestMatchers("/dashboard").authenticated()
+                .requestMatchers("/", "/login.html").permitAll()
+                .requestMatchers("/index.html", "/dashboard").authenticated()
                 .anyRequest().authenticated()
             )
             .headers(headers -> headers.frameOptions().disable()) // For H2 console
