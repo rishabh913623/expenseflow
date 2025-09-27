@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExpenseFlow - Smart Expense Tracker</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Background Elements -->
+    <div class="bg-shapes">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <i class="fas fa-chart-line brand-icon"></i>
+                <span class="brand-text">ExpenseFlow</span>
+            </div>
+            <div class="nav-actions">
+                <button id="themeToggle" class="nav-btn" title="Toggle Theme">
+                    <i class="fas fa-moon"></i>
+                </button>
+                <button id="exportBtn" class="nav-btn" title="Export Data">
+                    <i class="fas fa-download"></i>
+                </button>
+                <button id="budgetBtn" class="nav-btn" title="Set Budget">
+                    <i class="fas fa-piggy-bank"></i>
+                </button>
+                <button id="summaryBtn" class="nav-btn primary" title="View Summary">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>Dashboard</span>
+                </button>
+                <button id="logoutBtn" class="nav-btn" title="Logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-container">
+        <!-- Stats Cards -->
+        <section class="stats-section">
+            <div class="stats-grid">
+                <div class="stat-card total-expenses">
+                    <div class="stat-icon">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="totalExpenseAmount">₹0.00</h3>
+                        <p>Total Expenses</p>
+                        <span class="stat-change" id="totalChange">+0% from last month</span>
+                    </div>
+                </div>
+                <div class="stat-card cash-expenses">
+                    <div class="stat-icon">
+                        <i class="fas fa-money-bills"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="cashExpenseAmount">₹0.00</h3>
+                        <p>Cash Payments</p>
+                        <span class="stat-change" id="cashChange">+0% from last month</span>
+                    </div>
+                </div>
+                <div class="stat-card upi-expenses">
+                    <div class="stat-icon">
+                        <i class="fas fa-mobile-alt"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="upiExpenseAmount">₹0.00</h3>
+                        <p>UPI Payments</p>
+                        <span class="stat-change" id="upiChange">+0% from last month</span>
+                    </div>
+                </div>
+                <div class="stat-card transaction-count">
+                    <div class="stat-icon">
+                        <i class="fas fa-receipt"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="transactionCount">0</h3>
+                        <p>Transactions</p>
+                        <span class="stat-change" id="transactionChange">+0 this month</span>
+                    </div>
+                </div>
+                <div class="stat-card budget-total">
+                    <div class="stat-icon">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="budgetAmount">₹0.00</h3>
+                        <p>Monthly Budget</p>
+                        <span class="stat-change" id="budgetStatus">Set your budget</span>
+                    </div>
+                </div>
+                <div class="stat-card budget-remaining">
+                    <div class="stat-icon">
+                        <i class="fas fa-piggy-bank"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="remainingBudgetAmount">₹0.00</h3>
+                        <p>Remaining Budget</p>
+                        <span class="stat-change" id="remainingStatus">No budget set</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Content Grid -->
+        <div class="content-grid">
+            <!-- Add Expense Card -->
+            <section class="expense-form-card">
+                <div class="card-header">
+                    <div class="header-content">
+                        <h2 id="formTitle">
+                            <i class="fas fa-plus-circle"></i>
+                            Add New Expense
+                        </h2>
+                        <p class="header-subtitle">Track your spending with ease</p>
+                    </div>
+                    <button id="cancelEditBtn" class="cancel-btn" style="display: none;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <form id="expenseForm" class="modern-form">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="amount">
+                                <i class="fas fa-rupee-sign"></i>
+                                Amount *
+                            </label>
+                            <div class="input-wrapper">
+                                <input type="number" id="amount" name="amount" step="0.01" min="0.01" required placeholder="0.00">
+                                <span class="input-focus"></span>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="category">
+                                <i class="fas fa-tags"></i>
+                                Category *
+                            </label>
+                            <div class="select-wrapper">
+                                <select id="category" name="category" required>
+                                    <option value="">Choose category</option>
+                                    <option value="Food" data-icon="🍽️">🍽️ Food & Dining</option>
+                                    <option value="Travel" data-icon="✈️">✈️ Travel & Transport</option>
+                                    <option value="Utilities" data-icon="⚡">⚡ Utilities & Bills</option>
+                                    <option value="Entertainment" data-icon="🎬">🎬 Entertainment</option>
+                                    <option value="Healthcare" data-icon="🏥">🏥 Healthcare</option>
+                                    <option value="Shopping" data-icon="🛍️">🛍️ Shopping</option>
+                                    <option value="Education" data-icon="📚">📚 Education</option>
+                                    <option value="Miscellaneous" data-icon="📦">📦 Miscellaneous</option>
+                                </select>
+                                <i class="fas fa-chevron-down select-arrow"></i>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="expenseDate">
+                                <i class="fas fa-calendar-alt"></i>
+                                Date *
+                            </label>
+                            <div class="input-wrapper">
+                                <input type="date" id="expenseDate" name="expenseDate" required>
+                                <span class="input-focus"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="payment-method-section">
+                        <label class="section-label">
+                            <i class="fas fa-credit-card"></i>
+                            Payment Method *
+                        </label>
+                        <div class="payment-options">
+                            <div class="payment-option" data-method="CASH">
+                                <input type="radio" id="cash" name="paymentMethod" value="CASH" required>
+                                <label for="cash" class="payment-label">
+                                    <div class="payment-icon">
+                                        <i class="fas fa-money-bills"></i>
+                                    </div>
+                                    <div class="payment-text">
+                                        <span class="payment-title">Cash</span>
+                                        <span class="payment-desc">Physical currency</span>
+                                    </div>
+                                </label>
+                            </div>
+                            <div class="payment-option" data-method="UPI">
+                                <input type="radio" id="upi" name="paymentMethod" value="UPI" required>
+                                <label for="upi" class="payment-label">
+                                    <div class="payment-icon">
+                                        <i class="fas fa-mobile-alt"></i>
+                                    </div>
+                                    <div class="payment-text">
+                                        <span class="payment-title">UPI</span>
+                                        <span class="payment-desc">Digital payment</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- UPI Fields (shown only when UPI is selected) -->
+                    <div id="upiFields" class="upi-fields-section" style="display: none;">
+                        <div class="upi-header">
+                            <i class="fas fa-mobile-alt"></i>
+                            <span>UPI Payment Details</span>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="upiVpa">
+                                    <i class="fas fa-at"></i>
+                                    UPI VPA *
+                                </label>
+                                <div class="input-wrapper">
+                                    <input type="text" id="upiVpa" name="upiVpa" placeholder="user@paytm">
+                                    <span class="input-focus"></span>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="transactionId">
+                                    <i class="fas fa-hashtag"></i>
+                                    Transaction ID *
+                                </label>
+                                <div class="input-wrapper">
+                                    <input type="text" id="transactionId" name="transactionId" placeholder="TXN123456789">
+                                    <span class="input-focus"></span>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="payerName">
+                                    <i class="fas fa-user"></i>
+                                    Payer Name
+                                </label>
+                                <div class="input-wrapper">
+                                    <input type="text" id="payerName" name="payerName" placeholder="John Doe">
+                                    <span class="input-focus"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="notes">
+                            <i class="fas fa-sticky-note"></i>
+                            Notes
+                        </label>
+                        <div class="textarea-wrapper">
+                            <textarea id="notes" name="notes" rows="3" placeholder="Add any additional notes about this expense..."></textarea>
+                            <span class="input-focus"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="submit-btn">
+                            <i class="fas fa-plus"></i>
+                            <span id="submitBtnText">Add Expense</span>
+                            <div class="btn-ripple"></div>
+                        </button>
+                        <button type="reset" class="reset-btn">
+                            <i class="fas fa-undo"></i>
+                            Reset Form
+                        </button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- Filters & Expenses Section -->
+            <section class="expenses-section">
+                <div class="section-header">
+                    <div class="header-content">
+                        <h2>
+                            <i class="fas fa-list-alt"></i>
+                            Recent Expenses
+                        </h2>
+                        <p class="header-subtitle">Manage and track your spending</p>
+                    </div>
+                    <div class="header-actions">
+                        <button id="toggleFilters" class="filter-toggle-btn">
+                            <i class="fas fa-filter"></i>
+                            Filters
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Advanced Filters -->
+                <div id="filtersPanel" class="filters-panel">
+                    <div class="filters-grid">
+                        <div class="filter-group">
+                            <label for="filterCategory">
+                                <i class="fas fa-tags"></i>
+                                Category
+                            </label>
+                            <div class="select-wrapper">
+                                <select id="filterCategory">
+                                    <option value="">All Categories</option>
+                                    <option value="Food">🍽️ Food & Dining</option>
+                                    <option value="Travel">✈️ Travel & Transport</option>
+                                    <option value="Utilities">⚡ Utilities & Bills</option>
+                                    <option value="Entertainment">🎬 Entertainment</option>
+                                    <option value="Healthcare">🏥 Healthcare</option>
+                                    <option value="Shopping">🛍️ Shopping</option>
+                                    <option value="Education">📚 Education</option>
+                                    <option value="Miscellaneous">📦 Miscellaneous</option>
+                                </select>
+                                <i class="fas fa-chevron-down select-arrow"></i>
+                            </div>
+                        </div>
+
+                        <div class="filter-group">
+                            <label for="filterPaymentMethod">
+                                <i class="fas fa-credit-card"></i>
+                                Payment Method
+                            </label>
+                            <div class="select-wrapper">
+                                <select id="filterPaymentMethod">
+                                    <option value="">All Methods</option>
+                                    <option value="CASH">💵 Cash</option>
+                                    <option value="UPI">📱 UPI</option>
+                                </select>
+                                <i class="fas fa-chevron-down select-arrow"></i>
+                            </div>
+                        </div>
+
+                        <div class="filter-group">
+                            <label for="filterStartDate">
+                                <i class="fas fa-calendar-alt"></i>
+                                Start Date
+                            </label>
+                            <div class="input-wrapper">
+                                <input type="date" id="filterStartDate">
+                                <span class="input-focus"></span>
+                            </div>
+                        </div>
+
+                        <div class="filter-group">
+                            <label for="filterEndDate">
+                                <i class="fas fa-calendar-alt"></i>
+                                End Date
+                            </label>
+                            <div class="input-wrapper">
+                                <input type="date" id="filterEndDate">
+                                <span class="input-focus"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="filter-actions">
+                        <button id="applyFiltersBtn" class="apply-btn">
+                            <i class="fas fa-search"></i>
+                            Apply Filters
+                        </button>
+                        <button id="clearFiltersBtn" class="clear-btn">
+                            <i class="fas fa-times"></i>
+                            Clear All
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Expenses List -->
+                <div class="expenses-container">
+                    <div class="expenses-header">
+                        <div class="expenses-info">
+                            <span id="expenseCount" class="expense-count">0 expenses</span>
+                            <span id="totalAmount" class="total-amount">Total: ₹0.00</span>
+                        </div>
+                        <div class="view-toggle">
+                            <button id="cardViewBtn" class="view-btn active">
+                                <i class="fas fa-th-large"></i>
+                            </button>
+                            <button id="tableViewBtn" class="view-btn">
+                                <i class="fas fa-table"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Card View -->
+                    <div id="cardView" class="expenses-grid">
+                        <!-- Expense cards will be loaded here -->
+                    </div>
+
+                    <!-- Table View -->
+                    <div id="tableView" class="table-container" style="display: none;">
+                        <div class="modern-table-wrapper">
+                            <table id="expensesTable" class="modern-table">
+                                <thead>
+                                    <tr>
+                                        <th><i class="fas fa-calendar-alt"></i> Date</th>
+                                        <th><i class="fas fa-tags"></i> Category</th>
+                                        <th><i class="fas fa-rupee-sign"></i> Amount</th>
+                                        <th><i class="fas fa-credit-card"></i> Payment</th>
+                                        <th><i class="fas fa-money-bills"></i> Cash</th>
+                                        <th><i class="fas fa-mobile-alt"></i> UPI</th>
+                                        <th><i class="fas fa-info-circle"></i> Details</th>
+                                        <th><i class="fas fa-sticky-note"></i> Notes</th>
+                                        <th><i class="fas fa-cog"></i> Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="expensesTableBody">
+                                    <!-- Expenses will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div id="noExpenses" class="no-data" style="display: none;">
+                        <div class="no-data-icon">
+                            <i class="fas fa-receipt"></i>
+                        </div>
+                        <h3>No expenses found</h3>
+                        <p>Start tracking your expenses by adding your first transaction above!</p>
+                        <button class="add-first-expense-btn" onclick="document.getElementById('amount').focus()">
+                            <i class="fas fa-plus"></i>
+                            Add Your First Expense
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Enhanced Summary Modal -->
+    <div id="summaryModal" class="modern-modal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-container">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <i class="fas fa-chart-pie"></i>
+                    <h2>Expense Dashboard</h2>
+                </div>
+                <button class="modal-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="summaryContent">
+                <!-- Enhanced summary content will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Budget Settings Modal -->
+    <div id="budgetModal" class="modern-modal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-container">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <i class="fas fa-piggy-bank"></i>
+                    <h2>Set Monthly Budget</h2>
+                </div>
+                <button class="modal-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="budgetForm" class="modern-form">
+                    <div class="form-group">
+                        <label for="budgetInputAmount">
+                            <i class="fas fa-rupee-sign"></i>
+                            Monthly Budget Amount *
+                        </label>
+                        <div class="input-wrapper">
+                            <input type="number" id="budgetInputAmount" name="budgetInputAmount" step="0.01" min="0.01" placeholder="5000.00" required>
+                            <span class="input-focus"></span>
+                        </div>
+                        <small class="form-help">Set your monthly spending limit to track your budget</small>
+                    </div>
+
+                    <div class="budget-info" id="budgetInfo" style="display: none;">
+                        <div class="info-card">
+                            <h4>Current Status</h4>
+                            <div class="budget-stats">
+                                <div class="stat-item">
+                                    <span class="label">Current Expenses:</span>
+                                    <span class="value" id="currentExpenses">₹0.00</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="label">Remaining Budget:</span>
+                                    <span class="value" id="remainingBudget">₹0.00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="submit-btn">
+                            <i class="fas fa-save"></i>
+                            <span>Save Budget</span>
+                            <div class="btn-ripple"></div>
+                        </button>
+                        <button type="button" id="clearBudgetBtn" class="reset-btn">
+                            <i class="fas fa-trash"></i>
+                            Clear Budget
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modern Loading Spinner -->
+    <div id="loadingSpinner" class="modern-loading" style="display: none;">
+        <div class="loading-container">
+            <div class="loading-spinner">
+                <div class="spinner-ring"></div>
+                <div class="spinner-ring"></div>
+                <div class="spinner-ring"></div>
+            </div>
+            <p class="loading-text">Processing...</p>
+        </div>
+    </div>
+
+    <!-- Enhanced Toast Notifications -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Floating Action Button -->
+    <button id="fabBtn" class="fab" title="Quick Add Expense">
+        <i class="fas fa-plus"></i>
+    </button>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
