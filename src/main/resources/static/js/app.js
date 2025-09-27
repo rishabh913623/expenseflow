@@ -8,54 +8,205 @@ let currentEditingId = null;
 let allExpenses = [];
 let currentView = 'card'; // 'card' or 'table'
 let filtersVisible = false;
+let isValidatingToken = false;
+let isInitialized = false;
+let isRedirecting = false;
 
 // API Base URL
 const API_BASE_URL = '/api/expenses';
 
+// Get authentication token
+function getAuthToken() {
+    return localStorage.getItem('authToken');
+}
+
+// Create headers with authentication
+function getAuthHeaders() {
+    const token = getAuthToken();
+    const headers = {
+        'Content-Type': 'application/json',
+    };
+
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    return headers;
+}
+
+// Validate JWT token with server (prevents duplicate calls)
+async function validateToken(token) {
+    // Prevent multiple simultaneous validation calls
+    if (isValidatingToken) {
+        return new Promise((resolve) => {
+            const checkInterval = setInterval(() => {
+                if (!isValidatingToken) {
+                    clearInterval(checkInterval);
+                    resolve(!!localStorage.getItem('authToken'));
+                }
+            }, 100);
+        });
+    }
+
+    try {
+        isValidatingToken = true;
+
+        const response = await Promise.race([
+            fetch('/api/auth/validate', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                }
+            }),
+            new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Token validation timeout')), 3000)
+            )
+        ]);
+
+        const isValid = response.ok;
+
+        if (!isValid) {
+            // Clear invalid token
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('username');
+        }
+
+        return isValid;
+    } catch (error) {
+        console.error('Token validation error:', error);
+        // Clear potentially corrupted token on network errors
+        if (error.message === 'Token validation timeout' || error.name === 'TypeError') {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('username');
+        }
+        return false;
+    } finally {
+        isValidatingToken = false;
+    }
+}
+
 // DOM Elements
 const expenseForm = document.getElementById('expenseForm');
+const budgetForm = document.getElementById('budgetForm');
 const upiFields = document.getElementById('upiFields');
 const expensesTableBody = document.getElementById('expensesTableBody');
 const expensesGrid = document.getElementById('cardView');
 const loadingSpinner = document.getElementById('loadingSpinner');
 const summaryModal = document.getElementById('summaryModal');
+const budgetModal = document.getElementById('budgetModal');
 const toastContainer = document.getElementById('toastContainer');
 const filtersPanel = document.getElementById('filtersPanel');
 
 // Initialize application
 document.addEventListener('DOMContentLoaded', function() {
     initializeApp();
-    setupEventListeners();
-    loadExpenses();
 });
 
 /**
- * Initialize the application
+ * Initialize the application (prevents multiple initializations)
  */
-function initializeApp() {
-    // Set today's date as default
-    document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
+async function initializeApp() {
+    // Prevent multiple initializations
+    if (isInitialized || isRedirecting) {
+        return;
+    }
 
-    // Initialize theme
-    initializeTheme();
+    try {
+        // Check if user is authenticated
+        const token = getAuthToken();
+        const currentPath = window.location.pathname;
 
-    // Load categories from API
-    loadCategories();
-
-    // Initialize view preference
-    const savedView = localStorage.getItem('preferredView') || 'card';
-    switchView(savedView);
-
-    // Add smooth scrolling to all internal links
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function (e) {
-            e.preventDefault();
-            const target = document.querySelector(this.getAttribute('href'));
-            if (target) {
-                target.scrollIntoView({ behavior: 'smooth' });
+        if (!token) {
+            if (!isRedirecting) {
+                isRedirecting = true;
+                window.location.replace('/login.html');
             }
+            return;
+        }
+
+        // Validate token with timeout
+        const isValid = await Promise.race([
+            validateToken(token),
+            new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Authentication timeout')), 5000)
+            )
+        ]);
+
+        if (!isValid) {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('username');
+            if (currentPath !== '/login.html' && !isRedirecting) {
+                isRedirecting = true;
+                window.location.replace('/login.html');
+            }
+            return;
+        }
+
+        isInitialized = true;
+
+        // Set today's date as default
+        const dateElement = document.getElementById('expenseDate');
+        if (dateElement) {
+            dateElement.value = new Date().toISOString().split('T')[0];
+        }
+
+        // Initialize theme
+        initializeTheme();
+
+        // Setup event listeners first
+        setupEventListeners();
+
+        // Load data sequentially to avoid race conditions
+        try {
+            await loadCategories();
+        } catch (error) {
+            console.warn('Failed to load categories:', error);
+        }
+
+        try {
+            await loadBudget();
+        } catch (error) {
+            console.warn('Failed to load budget:', error);
+        }
+
+        // Initialize view preference
+        const savedView = localStorage.getItem('preferredView') || 'card';
+        switchView(savedView);
+
+        // Load expenses
+        try {
+            await loadExpenses();
+        } catch (error) {
+            console.warn('Failed to load expenses:', error);
+            showToast('Failed to load expenses. Please refresh the page.', 'warning');
+        }
+
+        // Add smooth scrolling to all internal links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
         });
-    });
+
+    } catch (error) {
+        console.error('Application initialization failed:', error);
+        // Only redirect on critical authentication errors
+        if (error.message === 'Authentication timeout' || error.message.includes('Token validation timeout')) {
+            showToast('Authentication failed. Redirecting to login...', 'error');
+            setTimeout(() => {
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('username');
+                window.location.replace('/login.html');
+            }, 2000);
+        } else {
+            showToast('Failed to initialize application. Please refresh the page.', 'error');
+        }
+    }
 }
 
 /**
@@ -79,6 +230,7 @@ function initializeTheme() {
 function setupEventListeners() {
     // Form submission
     expenseForm.addEventListener('submit', handleFormSubmit);
+    budgetForm.addEventListener('submit', handleBudgetFormSubmit);
 
     // Payment method change (radio buttons)
     document.querySelectorAll('input[name="paymentMethod"]').forEach(radio => {
@@ -99,8 +251,10 @@ function setupEventListeners() {
 
     // Header actions
     document.getElementById('exportBtn').addEventListener('click', exportToCsv);
+    document.getElementById('budgetBtn').addEventListener('click', showBudgetModal);
     document.getElementById('summaryBtn').addEventListener('click', showSummary);
     document.getElementById('cancelEditBtn').addEventListener('click', cancelEdit);
+    document.getElementById('logoutBtn').addEventListener('click', logout);
 
     // FAB
     document.getElementById('fabBtn').addEventListener('click', () => {
@@ -112,8 +266,13 @@ function setupEventListeners() {
     document.getElementById('themeToggle').addEventListener('click', toggleTheme);
 
     // Modal close
-    document.querySelector('.modal-close').addEventListener('click', closeSummaryModal);
-    document.querySelector('.modal-backdrop').addEventListener('click', closeSummaryModal);
+    document.querySelector('#summaryModal .modal-close').addEventListener('click', closeSummaryModal);
+    document.querySelector('#summaryModal .modal-backdrop').addEventListener('click', closeSummaryModal);
+    document.querySelector('#budgetModal .modal-close').addEventListener('click', closeBudgetModal);
+    document.querySelector('#budgetModal .modal-backdrop').addEventListener('click', closeBudgetModal);
+
+    // Clear budget button
+    document.getElementById('clearBudgetBtn').addEventListener('click', clearBudget);
 
     // Keyboard shortcuts
     document.addEventListener('keydown', handleKeyboardShortcuts);
@@ -148,17 +307,13 @@ async function handleFormSubmit(event) {
         if (currentEditingId) {
             response = await fetch(`${API_BASE_URL}/${currentEditingId}`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: getAuthHeaders(),
                 body: JSON.stringify(expenseData)
             });
         } else {
             response = await fetch(API_BASE_URL, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: getAuthHeaders(),
                 body: JSON.stringify(expenseData)
             });
         }
@@ -281,18 +436,24 @@ function validateForm() {
 async function loadExpenses() {
     try {
         showLoading(true);
-        
-        const response = await fetch(API_BASE_URL);
+
+        const response = await fetch(API_BASE_URL, {
+            headers: getAuthHeaders()
+        });
         if (response.ok) {
             allExpenses = await response.json();
             displayExpenses(allExpenses);
             updateExpenseStats(allExpenses);
+
+            // Also load summary to update budget display
+            loadSummaryForBudget();
         } else {
-            throw new Error('Failed to load expenses');
+            console.error('Failed to load expenses:', response.status);
+            // Don't throw error, just log it
         }
     } catch (error) {
         console.error('Error loading expenses:', error);
-        showToast('Error loading expenses', 'error');
+        // Don't show toast for initialization errors
     } finally {
         showLoading(false);
     }
@@ -459,6 +620,64 @@ function updateExpenseStats(expenses) {
     document.getElementById('cashExpenseAmount').textContent = `₹${cashTotal.toFixed(2)}`;
     document.getElementById('upiExpenseAmount').textContent = `₹${upiTotal.toFixed(2)}`;
     document.getElementById('transactionCount').textContent = count.toString();
+
+    // Update budget display (will be updated when summary is loaded)
+    updateBudgetDisplay();
+}
+
+/**
+ * Update budget display
+ */
+function updateBudgetDisplay() {
+    // This will be called after summary is loaded
+    // For now, just ensure the element exists
+    const remainingBudgetElement = document.getElementById('remainingBudgetAmount');
+    if (remainingBudgetElement && !remainingBudgetElement.dataset.loaded) {
+        // Load budget from API
+        loadBudget();
+    }
+}
+
+/**
+ * Load budget from API
+ */
+async function loadBudget() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/budget`, {
+            headers: getAuthHeaders()
+        });
+        if (response.ok) {
+            const budget = await response.json();
+            // Store budget for later use
+            localStorage.setItem('userBudget', budget.toString());
+            // Update display will happen when summary is loaded
+        } else {
+            console.error('Failed to load budget:', response.status);
+        }
+    } catch (error) {
+        console.error('Error loading budget:', error);
+        // Don't throw error, just log it
+    }
+}
+
+/**
+ * Load summary data to update budget display on dashboard
+ */
+async function loadSummaryForBudget() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/summary`, {
+            headers: getAuthHeaders()
+        });
+        if (response.ok) {
+            const summary = await response.json();
+            updateBudgetFromSummary(summary);
+        } else {
+            console.error('Failed to load summary for budget:', response.status);
+        }
+    } catch (error) {
+        console.error('Error loading summary for budget:', error);
+        // Don't throw error, just log it
+    }
 }
 
 /**
@@ -541,7 +760,9 @@ async function editExpense(id) {
     try {
         showLoading(true);
         
-        const response = await fetch(`${API_BASE_URL}/${id}`);
+        const response = await fetch(`${API_BASE_URL}/${id}`, {
+            headers: getAuthHeaders()
+        });
         if (response.ok) {
             const expense = await response.json();
             populateFormForEdit(expense);
@@ -609,7 +830,8 @@ async function deleteExpense(id) {
         showLoading(true);
 
         const response = await fetch(`${API_BASE_URL}/${id}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: getAuthHeaders()
         });
 
         if (response.ok) {
@@ -644,7 +866,9 @@ async function applyFilters() {
         if (startDate) params.append('startDate', startDate);
         if (endDate) params.append('endDate', endDate);
 
-        const response = await fetch(`${API_BASE_URL}?${params.toString()}`);
+        const response = await fetch(`${API_BASE_URL}?${params.toString()}`, {
+            headers: getAuthHeaders()
+        });
         if (response.ok) {
             const filteredExpenses = await response.json();
             displayExpenses(filteredExpenses);
@@ -679,7 +903,9 @@ async function exportToCsv() {
     try {
         showLoading(true);
 
-        const response = await fetch(`${API_BASE_URL}/export/csv`);
+        const response = await fetch(`${API_BASE_URL}/export/csv`, {
+            headers: getAuthHeaders()
+        });
         if (response.ok) {
             const csvContent = await response.text();
             const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -712,7 +938,9 @@ async function showSummary() {
     try {
         showLoading(true);
 
-        const response = await fetch(`${API_BASE_URL}/summary`);
+        const response = await fetch(`${API_BASE_URL}/summary`, {
+            headers: getAuthHeaders()
+        });
         if (response.ok) {
             const summary = await response.json();
             displaySummary(summary);
@@ -733,6 +961,9 @@ async function showSummary() {
  */
 function displaySummary(summary) {
     const summaryContent = document.getElementById('summaryContent');
+
+    // Update budget display on dashboard
+    updateBudgetFromSummary(summary);
 
     let categoryTotalsHtml = '';
     if (summary.categoryTotals) {
@@ -778,6 +1009,14 @@ function displaySummary(summary) {
                     <h4>UPI Total</h4>
                     <p class="amount">₹${summary.totalUpiAmount.toFixed(2)}</p>
                 </div>
+                <div class="summary-card">
+                    <h4>Budget</h4>
+                    <p class="amount">₹${summary.budget ? summary.budget.toFixed(2) : '0.00'}</p>
+                </div>
+                <div class="summary-card">
+                    <h4>Remaining Budget</h4>
+                    <p class="amount">₹${summary.remainingBudget ? summary.remainingBudget.toFixed(2) : '0.00'}</p>
+                </div>
             </div>
         </div>
 
@@ -798,10 +1037,173 @@ function displaySummary(summary) {
 }
 
 /**
+ * Update budget display from summary data
+ */
+function updateBudgetFromSummary(summary) {
+    const budgetElement = document.getElementById('budgetAmount');
+    const remainingBudgetElement = document.getElementById('remainingBudgetAmount');
+    const budgetStatusElement = document.getElementById('budgetStatus');
+    const remainingStatusElement = document.getElementById('remainingStatus');
+
+    if (budgetElement && remainingBudgetElement && summary.budget !== undefined && summary.remainingBudget !== undefined) {
+        const budget = parseFloat(summary.budget || 0);
+        const remainingBudget = parseFloat(summary.remainingBudget);
+
+        // Update budget amount card
+        budgetElement.textContent = budget > 0 ? `₹${budget.toFixed(2)}` : '₹0.00';
+
+        // Update remaining budget card
+        remainingBudgetElement.textContent = `₹${remainingBudget.toFixed(2)}`;
+
+        if (budget === 0) {
+            budgetStatusElement.textContent = 'Set your budget';
+            remainingStatusElement.textContent = 'No budget set';
+            remainingBudgetElement.textContent = '₹0.00';
+            remainingBudgetElement.style.color = ''; // Reset color
+        } else if (remainingBudget >= 0) {
+            budgetStatusElement.textContent = 'Active budget';
+            remainingStatusElement.textContent = 'Within budget';
+            remainingBudgetElement.style.color = ''; // Reset color
+        } else {
+            budgetStatusElement.textContent = 'Active budget';
+            remainingStatusElement.textContent = `Over by ₹${Math.abs(remainingBudget).toFixed(2)}`;
+            remainingBudgetElement.style.color = '#ef4444'; // Red color for over budget
+        }
+
+        budgetElement.dataset.loaded = 'true';
+        remainingBudgetElement.dataset.loaded = 'true';
+    }
+}
+
+/**
  * Close summary modal
  */
 function closeSummaryModal() {
     summaryModal.classList.remove('active');
+}
+
+/**
+ * Show budget modal
+ */
+async function showBudgetModal() {
+    try {
+        showLoading(true);
+
+        // Load current budget
+        const budgetResponse = await fetch(`${API_BASE_URL}/budget`, {
+            headers: getAuthHeaders()
+        });
+
+        if (budgetResponse.ok) {
+            const currentBudget = await budgetResponse.json();
+            document.getElementById('budgetInputAmount').value = currentBudget > 0 ? currentBudget : '';
+        }
+
+        // Load current expenses for info display
+        const summaryResponse = await fetch(`${API_BASE_URL}/summary`, {
+            headers: getAuthHeaders()
+        });
+
+        if (summaryResponse.ok) {
+            const summary = await summaryResponse.json();
+            document.getElementById('currentExpenses').textContent = `₹${summary.totalAmount ? summary.totalAmount.toFixed(2) : '0.00'}`;
+            document.getElementById('remainingBudget').textContent = `₹${summary.remainingBudget ? summary.remainingBudget.toFixed(2) : '0.00'}`;
+            document.getElementById('budgetInfo').style.display = 'block';
+        }
+
+        budgetModal.classList.add('active');
+    } catch (error) {
+        console.error('Error loading budget data:', error);
+        showToast('Error loading budget data', 'error');
+    } finally {
+        showLoading(false);
+    }
+}
+
+/**
+ * Close budget modal
+ */
+function closeBudgetModal() {
+    budgetModal.classList.remove('active');
+    budgetForm.reset();
+    document.getElementById('budgetInfo').style.display = 'none';
+}
+
+/**
+ * Handle budget form submission
+ */
+async function handleBudgetFormSubmit(event) {
+    event.preventDefault();
+
+    const budgetAmount = parseFloat(document.getElementById('budgetInputAmount').value);
+
+    if (!budgetAmount || budgetAmount <= 0) {
+        showToast('Please enter a valid budget amount greater than 0', 'error');
+        return;
+    }
+
+    try {
+        showLoading(true);
+
+        const response = await fetch(`${API_BASE_URL}/budget`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${getAuthToken()}`,
+                'Content-Type': 'text/plain'
+            },
+            body: budgetAmount.toString()
+        });
+
+        if (response.ok) {
+            showToast('Budget updated successfully!', 'success');
+            closeBudgetModal();
+            // Reload expenses to update budget display
+            loadExpenses();
+        } else {
+            throw new Error('Failed to update budget');
+        }
+    } catch (error) {
+        console.error('Error updating budget:', error);
+        showToast('Error updating budget. Please try again.', 'error');
+    } finally {
+        showLoading(false);
+    }
+}
+
+/**
+ * Clear budget
+ */
+async function clearBudget() {
+    if (!confirm('Are you sure you want to clear your budget?')) {
+        return;
+    }
+
+    try {
+        showLoading(true);
+
+        const response = await fetch(`${API_BASE_URL}/budget`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${getAuthToken()}`,
+                'Content-Type': 'text/plain'
+            },
+            body: '0'
+        });
+
+        if (response.ok) {
+            showToast('Budget cleared successfully!', 'success');
+            closeBudgetModal();
+            // Reload expenses to update budget display
+            loadExpenses();
+        } else {
+            throw new Error('Failed to clear budget');
+        }
+    } catch (error) {
+        console.error('Error clearing budget:', error);
+        showToast('Error clearing budget. Please try again.', 'error');
+    } finally {
+        showLoading(false);
+    }
 }
 
 /**
@@ -825,7 +1227,9 @@ async function loadCategories() {
         updateCategoryOptions(predefinedCategories);
 
         // Then try to load additional categories from API
-        const response = await fetch(`${API_BASE_URL}/categories`);
+        const response = await fetch(`${API_BASE_URL}/categories`, {
+            headers: getAuthHeaders()
+        });
         if (response.ok) {
             const apiCategories = await response.json();
 
@@ -946,4 +1350,28 @@ function formatDate(dateString) {
         month: 'short',
         day: 'numeric'
     });
+}
+
+/**
+ * Logout user
+ */
+function logout() {
+    if (confirm('Are you sure you want to logout?')) {
+        // Clear stored authentication data
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('username');
+
+        // Clear auth cookie
+        document.cookie = 'authToken=; path=/; max-age=0; samesite=strict';
+
+        // Reset state
+        isInitialized = false;
+        isRedirecting = false;
+
+        // Redirect to login page
+        if (!isRedirecting) {
+            isRedirecting = true;
+            window.location.replace('/login.html');
+        }
+    }
 }

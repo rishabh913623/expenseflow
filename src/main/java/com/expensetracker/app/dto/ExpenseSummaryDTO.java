@@ -16,6 +16,8 @@ public class ExpenseSummaryDTO {
     private BigDecimal totalCashAmount;
     private BigDecimal totalUpiAmount;
     private long totalTransactions;
+    private BigDecimal budget;
+    private BigDecimal remainingBudget;
     private Map<String, BigDecimal> categoryTotals;
     private Map<String, BigDecimal> paymentMethodTotals;
     
@@ -84,6 +86,22 @@ public class ExpenseSummaryDTO {
     public void setPaymentMethodTotals(Map<String, BigDecimal> paymentMethodTotals) {
         this.paymentMethodTotals = paymentMethodTotals;
     }
+
+    public BigDecimal getBudget() {
+        return budget;
+    }
+
+    public void setBudget(BigDecimal budget) {
+        this.budget = budget;
+    }
+
+    public BigDecimal getRemainingBudget() {
+        return remainingBudget;
+    }
+
+    public void setRemainingBudget(BigDecimal remainingBudget) {
+        this.remainingBudget = remainingBudget;
+    }
     
     @Override
     public String toString() {
@@ -92,6 +110,8 @@ public class ExpenseSummaryDTO {
                 ", totalCashAmount=" + totalCashAmount +
                 ", totalUpiAmount=" + totalUpiAmount +
                 ", totalTransactions=" + totalTransactions +
+                ", budget=" + budget +
+                ", remainingBudget=" + remainingBudget +
                 ", categoryTotals=" + categoryTotals +
                 ", paymentMethodTotals=" + paymentMethodTotals +
                 '}';

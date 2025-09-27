@@ -1,20 +1,23 @@
 package com.expensetracker.app.service;
 
-import com.expensetracker.app.dto.ExpenseFilterDTO;
-import com.expensetracker.app.dto.ExpenseSummaryDTO;
-import com.expensetracker.app.model.Expense;
-import com.expensetracker.app.model.PaymentMethod;
-import com.expensetracker.app.repository.ExpenseRepository;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.*;
-import java.util.stream.Collectors;
+import com.expensetracker.app.dto.ExpenseFilterDTO;
+import com.expensetracker.app.dto.ExpenseSummaryDTO;
+import com.expensetracker.app.model.Expense;
+import com.expensetracker.app.model.PaymentMethod;
+import com.expensetracker.app.model.User;
+import com.expensetracker.app.repository.ExpenseRepository;
 
 /**
  * Service class for managing expense operations.
@@ -193,49 +196,104 @@ public class ExpenseService {
     }
     
     /**
-     * Gets expense summary with totals and breakdowns
-     * 
+     * Gets expense summary with totals and breakdowns (legacy method for backward compatibility)
+     *
      * @return expense summary DTO
      */
     @Transactional(readOnly = true)
     public ExpenseSummaryDTO getExpenseSummary() {
-        logger.debug("Generating expense summary");
-        
+        logger.debug("Generating expense summary (legacy method)");
+
         List<Expense> allExpenses = expenseRepository.findAll();
-        
+
         BigDecimal totalAmount = allExpenses.stream()
                 .map(Expense::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        
+
         BigDecimal totalCashAmount = allExpenses.stream()
                 .map(Expense::getCashAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        
+
         BigDecimal totalUpiAmount = allExpenses.stream()
                 .map(Expense::getUpiAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        
+
         long totalTransactions = allExpenses.size();
-        
+
         // Category totals
         Map<String, BigDecimal> categoryTotals = allExpenses.stream()
                 .collect(Collectors.groupingBy(
                         Expense::getCategory,
                         Collectors.reducing(BigDecimal.ZERO, Expense::getAmount, BigDecimal::add)
                 ));
-        
+
         // Payment method totals
         Map<String, BigDecimal> paymentMethodTotals = allExpenses.stream()
                 .collect(Collectors.groupingBy(
                         expense -> expense.getPaymentMethod().toString(),
                         Collectors.reducing(BigDecimal.ZERO, Expense::getAmount, BigDecimal::add)
                 ));
-        
+
         ExpenseSummaryDTO summary = new ExpenseSummaryDTO(
                 totalAmount, totalCashAmount, totalUpiAmount, totalTransactions);
         summary.setCategoryTotals(categoryTotals);
         summary.setPaymentMethodTotals(paymentMethodTotals);
-        
+        // Budget fields will be null for legacy method
+
+        return summary;
+    }
+
+    /**
+     * Gets expense summary with totals and breakdowns
+     *
+     * @param user the user for whom to generate the summary
+     * @return expense summary DTO
+     */
+    @Transactional(readOnly = true)
+    public ExpenseSummaryDTO getExpenseSummary(User user) {
+        logger.debug("Generating expense summary for user: {}", user.getUsername());
+
+        List<Expense> allExpenses = expenseRepository.findAll(); // TODO: Filter by user when user field is added to Expense
+
+        BigDecimal totalAmount = allExpenses.stream()
+                .map(Expense::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal totalCashAmount = allExpenses.stream()
+                .map(Expense::getCashAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal totalUpiAmount = allExpenses.stream()
+                .map(Expense::getUpiAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        long totalTransactions = allExpenses.size();
+
+        // Category totals
+        Map<String, BigDecimal> categoryTotals = allExpenses.stream()
+                .collect(Collectors.groupingBy(
+                        Expense::getCategory,
+                        Collectors.reducing(BigDecimal.ZERO, Expense::getAmount, BigDecimal::add)
+                ));
+
+        // Payment method totals
+        Map<String, BigDecimal> paymentMethodTotals = allExpenses.stream()
+                .collect(Collectors.groupingBy(
+                        expense -> expense.getPaymentMethod().toString(),
+                        Collectors.reducing(BigDecimal.ZERO, Expense::getAmount, BigDecimal::add)
+                ));
+
+        // Budget and remaining budget
+        BigDecimal budget = user.getBudget() != null ? user.getBudget() : BigDecimal.ZERO;
+        BigDecimal remainingBudget = budget.subtract(totalAmount);
+
+        ExpenseSummaryDTO summary = new ExpenseSummaryDTO(
+                totalAmount, totalCashAmount, totalUpiAmount, totalTransactions);
+        summary.setCategoryTotals(categoryTotals);
+        summary.setPaymentMethodTotals(paymentMethodTotals);
+        summary.setBudget(budget);
+        summary.setRemainingBudget(remainingBudget);
+
         return summary;
     }
     

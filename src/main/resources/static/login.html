@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExpenseFlow - Login</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="login-body">
+    <!-- Background Elements -->
+    <div class="bg-shapes">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+    </div>
+
+    <!-- Login Container -->
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="brand-section">
+                    <i class="fas fa-chart-line brand-icon"></i>
+                    <span class="brand-text">ExpenseFlow</span>
+                </div>
+                <h1 id="formTitle">Welcome Back</h1>
+                <p class="login-subtitle">Sign in to your account to continue tracking expenses</p>
+            </div>
+
+            <!-- Login Form -->
+            <form id="loginForm" class="auth-form">
+                <div class="form-group">
+                    <label for="loginUsername">
+                        <i class="fas fa-user"></i>
+                        Username
+                    </label>
+                    <div class="input-wrapper">
+                        <input type="text" id="loginUsername" name="username" required placeholder="Enter your username">
+                        <span class="input-focus"></span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="loginPassword">
+                        <i class="fas fa-lock"></i>
+                        Password
+                    </label>
+                    <div class="input-wrapper">
+                        <input type="password" id="loginPassword" name="password" required placeholder="Enter your password">
+                        <span class="input-focus"></span>
+                    </div>
+                </div>
+
+                <button type="submit" class="auth-submit-btn">
+                    <i class="fas fa-sign-in-alt"></i>
+                    <span>Sign In</span>
+                    <div class="btn-ripple"></div>
+                </button>
+            </form>
+
+            <!-- Register Form (Hidden by default) -->
+            <form id="registerForm" class="auth-form" style="display: none;">
+                <div class="form-group">
+                    <label for="registerUsername">
+                        <i class="fas fa-user"></i>
+                        Username
+                    </label>
+                    <div class="input-wrapper">
+                        <input type="text" id="registerUsername" name="username" required placeholder="Choose a username" minlength="3">
+                        <span class="input-focus"></span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="registerEmail">
+                        <i class="fas fa-envelope"></i>
+                        Email
+                    </label>
+                    <div class="input-wrapper">
+                        <input type="email" id="registerEmail" name="email" required placeholder="Enter your email">
+                        <span class="input-focus"></span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="registerPassword">
+                        <i class="fas fa-lock"></i>
+                        Password
+                    </label>
+                    <div class="input-wrapper">
+                        <input type="password" id="registerPassword" name="password" required placeholder="Create a password" minlength="6">
+                        <span class="input-focus"></span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="confirmPassword">
+                        <i class="fas fa-lock"></i>
+                        Confirm Password
+                    </label>
+                    <div class="input-wrapper">
+                        <input type="password" id="confirmPassword" name="confirmPassword" required placeholder="Confirm your password">
+                        <span class="input-focus"></span>
+                    </div>
+                </div>
+
+                <button type="submit" class="auth-submit-btn">
+                    <i class="fas fa-user-plus"></i>
+                    <span>Create Account</span>
+                    <div class="btn-ripple"></div>
+                </button>
+            </form>
+
+            <!-- Toggle between login and register -->
+            <div class="auth-toggle">
+                <p id="toggleText">Don't have an account? <a href="#" id="toggleLink">Create one</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modern Loading Spinner -->
+    <div id="loadingSpinner" class="modern-loading" style="display: none;">
+        <div class="loading-container">
+            <div class="loading-spinner">
+                <div class="spinner-ring"></div>
+                <div class="spinner-ring"></div>
+                <div class="spinner-ring"></div>
+            </div>
+            <p class="loading-text">Processing...</p>
+        </div>
+    </div>
+
+    <!-- Enhanced Toast Notifications -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="js/auth.js"></script>
+</body>
+</html>

@@ -30,9 +30,15 @@
                 <button id="exportBtn" class="nav-btn" title="Export Data">
                     <i class="fas fa-download"></i>
                 </button>
+                <button id="budgetBtn" class="nav-btn" title="Set Budget">
+                    <i class="fas fa-piggy-bank"></i>
+                </button>
                 <button id="summaryBtn" class="nav-btn primary" title="View Summary">
                     <i class="fas fa-chart-pie"></i>
                     <span>Dashboard</span>
+                </button>
+                <button id="logoutBtn" class="nav-btn" title="Logout">
+                    <i class="fas fa-sign-out-alt"></i>
                 </button>
             </div>
         </div>
@@ -80,6 +86,26 @@
                         <h3 id="transactionCount">0</h3>
                         <p>Transactions</p>
                         <span class="stat-change" id="transactionChange">+0 this month</span>
+                    </div>
+                </div>
+                <div class="stat-card budget-total">
+                    <div class="stat-icon">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="budgetAmount">₹0.00</h3>
+                        <p>Monthly Budget</p>
+                        <span class="stat-change" id="budgetStatus">Set your budget</span>
+                    </div>
+                </div>
+                <div class="stat-card budget-remaining">
+                    <div class="stat-icon">
+                        <i class="fas fa-piggy-bank"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="remainingBudgetAmount">₹0.00</h3>
+                        <p>Remaining Budget</p>
+                        <span class="stat-change" id="remainingStatus">No budget set</span>
                     </div>
                 </div>
             </div>
@@ -417,6 +443,65 @@
             </div>
             <div class="modal-body" id="summaryContent">
                 <!-- Enhanced summary content will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Budget Settings Modal -->
+    <div id="budgetModal" class="modern-modal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-container">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <i class="fas fa-piggy-bank"></i>
+                    <h2>Set Monthly Budget</h2>
+                </div>
+                <button class="modal-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="budgetForm" class="modern-form">
+                    <div class="form-group">
+                        <label for="budgetInputAmount">
+                            <i class="fas fa-rupee-sign"></i>
+                            Monthly Budget Amount *
+                        </label>
+                        <div class="input-wrapper">
+                            <input type="number" id="budgetInputAmount" name="budgetInputAmount" step="0.01" min="0.01" placeholder="5000.00" required>
+                            <span class="input-focus"></span>
+                        </div>
+                        <small class="form-help">Set your monthly spending limit to track your budget</small>
+                    </div>
+
+                    <div class="budget-info" id="budgetInfo" style="display: none;">
+                        <div class="info-card">
+                            <h4>Current Status</h4>
+                            <div class="budget-stats">
+                                <div class="stat-item">
+                                    <span class="label">Current Expenses:</span>
+                                    <span class="value" id="currentExpenses">₹0.00</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="label">Remaining Budget:</span>
+                                    <span class="value" id="remainingBudget">₹0.00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="submit-btn">
+                            <i class="fas fa-save"></i>
+                            <span>Save Budget</span>
+                            <div class="btn-ripple"></div>
+                        </button>
+                        <button type="button" id="clearBudgetBtn" class="reset-btn">
+                            <i class="fas fa-trash"></i>
+                            Clear Budget
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

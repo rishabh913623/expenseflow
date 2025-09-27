@@ -5,30 +5,40 @@ import org.springframework.web.bind.annotation.GetMapping;
 
 /**
  * Web controller for serving the frontend application.
- * 
+ *
  * @author Expense Tracker Team
  * @version 1.0
  */
 @Controller
 public class WebController {
-    
+
     /**
-     * Serves the main application page
+     * Serve the login page for root path
      *
-     * @return the index page
+     * @return the login page
      */
     @GetMapping("/")
     public String index() {
-        return "forward:/index.html";
+        return "login";
     }
 
     /**
-     * Serves the main application page for any path (SPA support)
+     * Serve the dashboard page for authenticated users
      *
-     * @return the index page
+     * @return the dashboard page
      */
-    @GetMapping("/{path:[^\\.]*}")
-    public String forward() {
-        return "forward:/index.html";
+    @GetMapping("/dashboard")
+    public String dashboard() {
+        return "index";
+    }
+
+    /**
+     * Serve login page for any other unmatched paths
+     *
+     * @return the login page
+     */
+    @GetMapping("/login")
+    public String login() {
+        return "login";
     }
 }
