@@ -20,6 +20,7 @@ CREATE INDEX IF NOT EXISTS idx_created_at ON users (created_at);
 -- Create expenses table
 CREATE TABLE IF NOT EXISTS expenses (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
     amount DECIMAL(10, 2) NOT NULL CHECK (amount > 0),
     category VARCHAR(50) NOT NULL,
     expense_date DATE NOT NULL,
@@ -37,7 +38,10 @@ CREATE TABLE IF NOT EXISTS expenses (
     -- Common fields
     notes CLOB,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    -- Foreign key constraint
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 -- Create indexes for expenses table

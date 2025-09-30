@@ -333,27 +333,31 @@ public class ExpenseService {
     
     /**
      * Validates expense data
-     * 
+     *
      * @param expense the expense to validate
      * @throws IllegalArgumentException if validation fails
      */
     private void validateExpense(Expense expense) {
+        if (expense.getUser() == null) {
+            throw new IllegalArgumentException("User is required");
+        }
+
         if (expense.getAmount() == null || expense.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Amount must be greater than 0");
         }
-        
+
         if (expense.getCategory() == null || expense.getCategory().trim().isEmpty()) {
             throw new IllegalArgumentException("Category is required");
         }
-        
+
         if (expense.getExpenseDate() == null) {
             throw new IllegalArgumentException("Expense date is required");
         }
-        
+
         if (expense.getPaymentMethod() == null) {
             throw new IllegalArgumentException("Payment method is required");
         }
-        
+
         // UPI specific validations
         if (expense.getPaymentMethod() == PaymentMethod.UPI) {
             if (expense.getUpiVpa() == null || expense.getUpiVpa().trim().isEmpty()) {
