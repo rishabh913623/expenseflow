@@ -17,7 +17,24 @@ const API_BASE_URL = '/api/expenses';
 
 // Get authentication token
 function getAuthToken() {
-    return localStorage.getItem('authToken');
+    // First try localStorage
+    let token = localStorage.getItem('authToken');
+    if (token) {
+        return token;
+    }
+
+    // Then try cookie
+    const cookies = document.cookie.split(';');
+    for (let cookie of cookies) {
+        const [name, value] = cookie.trim().split('=');
+        if (name === 'authToken' && value) {
+            // Store in localStorage for future use
+            localStorage.setItem('authToken', value);
+            return value;
+        }
+    }
+
+    return null;
 }
 
 // Create headers with authentication

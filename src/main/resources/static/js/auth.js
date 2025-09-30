@@ -116,7 +116,7 @@ async function handleLogin(event) {
             localStorage.setItem('username', result.username);
 
             // Also store token in cookie for server-side authentication
-            document.cookie = `authToken=${result.token}; path=/; max-age=86400; samesite=strict`;
+            document.cookie = `authToken=${result.token}; path=/; max-age=604800; samesite=strict`;
 
             showToast('Login successful! Redirecting...', 'success');
 
@@ -179,7 +179,7 @@ async function handleRegister(event) {
             localStorage.setItem('username', result.username);
 
             // Also store token in cookie for server-side authentication
-            document.cookie = `authToken=${result.token}; path=/; max-age=86400; samesite=strict`;
+            document.cookie = `authToken=${result.token}; path=/; max-age=604800; samesite=strict`;
 
             showToast('Account created successfully! Redirecting...', 'success');
 

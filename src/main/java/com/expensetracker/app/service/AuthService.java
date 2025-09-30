@@ -14,7 +14,6 @@ import com.expensetracker.app.model.User;
 import com.expensetracker.app.repository.UserRepository;
 
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 
 /**
@@ -31,7 +30,7 @@ public class AuthService {
     // Use a fixed secret key for consistency across restarts
     private final String jwtSecret = "expenseTrackerSecretKey2024!@#$%^&*()";
     private final Key jwtSecretKey = Keys.hmacShaKeyFor(jwtSecret.getBytes());
-    private final long jwtExpirationMs = 86400000; // 24 hours
+    private final long jwtExpirationMs = 604800000; // 7 days
 
     @Autowired
     public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder) {

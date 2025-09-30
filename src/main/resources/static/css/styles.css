@@ -248,8 +248,7 @@ body {
 .main-container {
     margin: 0 auto var(--space-2xl) auto;
     max-width: 1400px;
-    padding: 0 var(--space-lg);
-    padding-bottom: var(--space-2xl);
+    padding: 90px var(--space-lg) var(--space-2xl) var(--space-lg);
 }
 
 /* Stats Section */
@@ -1651,8 +1650,7 @@ body {
 
 @media (max-width: 768px) {
     .main-container {
-        padding: 0 var(--space-md);
-        margin-top: 80px;
+        padding: 90px var(--space-md) var(--space-2xl) var(--space-md);
     }
 
     .nav-container {
@@ -1761,7 +1759,7 @@ body {
 
 @media (max-width: 480px) {
     .main-container {
-        padding: 0 var(--space-sm);
+        padding: 90px var(--space-sm) var(--space-2xl) var(--space-sm);
     }
 
     .nav-container {
