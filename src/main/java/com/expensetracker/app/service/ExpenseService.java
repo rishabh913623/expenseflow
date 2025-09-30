@@ -41,36 +41,44 @@ public class ExpenseService {
     
     /**
      * Creates a new expense
-     * 
+     *
      * @param expense the expense to create
+     * @param user the user who owns the expense
      * @return the created expense
      * @throws IllegalArgumentException if expense data is invalid
      */
-    public Expense createExpense(Expense expense) {
-        logger.debug("Creating new expense: {}", expense);
-        
+    public Expense createExpense(Expense expense, User user) {
+        logger.debug("Creating new expense for user {}: {}", user.getUsername(), expense);
+
+        expense.setUser(user);
         validateExpense(expense);
-        
+
         Expense savedExpense = expenseRepository.save(expense);
-        logger.info("Created expense with ID: {}", savedExpense.getId());
-        
+        logger.info("Created expense with ID: {} for user: {}", savedExpense.getId(), user.getUsername());
+
         return savedExpense;
     }
     
     /**
      * Updates an existing expense
-     * 
+     *
      * @param id the ID of the expense to update
      * @param expense the updated expense data
+     * @param user the user who owns the expense
      * @return the updated expense
      * @throws IllegalArgumentException if expense data is invalid or expense not found
      */
-    public Expense updateExpense(Long id, Expense expense) {
-        logger.debug("Updating expense with ID: {}", id);
-        
+    public Expense updateExpense(Long id, Expense expense, User user) {
+        logger.debug("Updating expense with ID: {} for user: {}", id, user.getUsername());
+
         Expense existingExpense = expenseRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Expense not found with ID: " + id));
-        
+
+        // Check if the expense belongs to the user
+        if (!existingExpense.getUser().getId().equals(user.getId())) {
+            throw new IllegalArgumentException("Expense does not belong to the user");
+        }
+
         // Update fields
         existingExpense.setAmount(expense.getAmount());
         existingExpense.setCategory(expense.getCategory());
@@ -80,118 +88,133 @@ public class ExpenseService {
         existingExpense.setTransactionId(expense.getTransactionId());
         existingExpense.setPayerName(expense.getPayerName());
         existingExpense.setNotes(expense.getNotes());
-        
+
         validateExpense(existingExpense);
-        
+
         Expense updatedExpense = expenseRepository.save(existingExpense);
-        logger.info("Updated expense with ID: {}", updatedExpense.getId());
-        
+        logger.info("Updated expense with ID: {} for user: {}", updatedExpense.getId(), user.getUsername());
+
         return updatedExpense;
     }
     
     /**
      * Deletes an expense by ID
-     * 
+     *
      * @param id the ID of the expense to delete
-     * @throws IllegalArgumentException if expense not found
+     * @param user the user who owns the expense
+     * @throws IllegalArgumentException if expense not found or doesn't belong to user
      */
-    public void deleteExpense(Long id) {
-        logger.debug("Deleting expense with ID: {}", id);
-        
-        if (!expenseRepository.existsById(id)) {
-            throw new IllegalArgumentException("Expense not found with ID: " + id);
+    public void deleteExpense(Long id, User user) {
+        logger.debug("Deleting expense with ID: {} for user: {}", id, user.getUsername());
+
+        Expense expense = expenseRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Expense not found with ID: " + id));
+
+        // Check if the expense belongs to the user
+        if (!expense.getUser().getId().equals(user.getId())) {
+            throw new IllegalArgumentException("Expense does not belong to the user");
         }
-        
+
         expenseRepository.deleteById(id);
-        logger.info("Deleted expense with ID: {}", id);
+        logger.info("Deleted expense with ID: {} for user: {}", id, user.getUsername());
     }
     
     /**
      * Retrieves an expense by ID
-     * 
+     *
      * @param id the ID of the expense
+     * @param user the user who owns the expense
      * @return the expense
-     * @throws IllegalArgumentException if expense not found
+     * @throws IllegalArgumentException if expense not found or doesn't belong to user
      */
     @Transactional(readOnly = true)
-    public Expense getExpenseById(Long id) {
-        logger.debug("Retrieving expense with ID: {}", id);
-        
-        return expenseRepository.findById(id)
+    public Expense getExpenseById(Long id, User user) {
+        logger.debug("Retrieving expense with ID: {} for user: {}", id, user.getUsername());
+
+        Expense expense = expenseRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Expense not found with ID: " + id));
+
+        // Check if the expense belongs to the user
+        if (!expense.getUser().getId().equals(user.getId())) {
+            throw new IllegalArgumentException("Expense does not belong to the user");
+        }
+
+        return expense;
     }
     
     /**
-     * Retrieves all expenses
-     * 
-     * @return list of all expenses
+     * Retrieves all expenses for a user
+     *
+     * @param user the user to filter by
+     * @return list of all expenses for the user
      */
     @Transactional(readOnly = true)
-    public List<Expense> getAllExpenses() {
-        logger.debug("Retrieving all expenses");
-        return expenseRepository.findAllByOrderByExpenseDateDesc();
+    public List<Expense> getAllExpenses(User user) {
+        logger.debug("Retrieving all expenses for user: {}", user.getUsername());
+        return expenseRepository.findByUserOrderByExpenseDateDesc(user);
     }
     
     /**
-     * Retrieves expenses based on filter criteria
-     * 
+     * Retrieves expenses based on filter criteria for a user
+     *
      * @param filter the filter criteria
+     * @param user the user to filter by
      * @return list of filtered expenses
      */
     @Transactional(readOnly = true)
-    public List<Expense> getFilteredExpenses(ExpenseFilterDTO filter) {
-        logger.debug("Retrieving filtered expenses: {}", filter);
-        
+    public List<Expense> getFilteredExpenses(ExpenseFilterDTO filter, User user) {
+        logger.debug("Retrieving filtered expenses for user {}: {}", user.getUsername(), filter);
+
         if (!filter.hasFilters()) {
-            return getAllExpenses();
+            return getAllExpenses(user);
         }
-        
+
         List<Expense> expenses = new ArrayList<>();
-        
+
         // Apply filters based on available criteria
         if (filter.getStartDate() != null && filter.getEndDate() != null) {
             if (filter.getCategory() != null && filter.getPaymentMethod() != null) {
-                expenses = expenseRepository.findByCategoryAndPaymentMethodAndExpenseDateBetween(
-                        filter.getCategory(), filter.getPaymentMethod(), 
+                expenses = expenseRepository.findByUserAndCategoryAndPaymentMethodAndExpenseDateBetween(
+                        user, filter.getCategory(), filter.getPaymentMethod(),
                         filter.getStartDate(), filter.getEndDate());
             } else if (filter.getCategory() != null) {
-                expenses = expenseRepository.findByCategoryAndExpenseDateBetween(
-                        filter.getCategory(), filter.getStartDate(), filter.getEndDate());
+                expenses = expenseRepository.findByUserAndCategoryAndExpenseDateBetween(
+                        user, filter.getCategory(), filter.getStartDate(), filter.getEndDate());
             } else if (filter.getPaymentMethod() != null) {
-                expenses = expenseRepository.findByPaymentMethodAndExpenseDateBetween(
-                        filter.getPaymentMethod(), filter.getStartDate(), filter.getEndDate());
+                expenses = expenseRepository.findByUserAndPaymentMethodAndExpenseDateBetween(
+                        user, filter.getPaymentMethod(), filter.getStartDate(), filter.getEndDate());
             } else {
-                expenses = expenseRepository.findByExpenseDateBetween(
-                        filter.getStartDate(), filter.getEndDate());
+                expenses = expenseRepository.findByUserAndExpenseDateBetween(
+                        user, filter.getStartDate(), filter.getEndDate());
             }
         } else if (filter.getCategory() != null && filter.getPaymentMethod() != null) {
-            expenses = expenseRepository.findByCategory(filter.getCategory())
+            expenses = expenseRepository.findByUserAndCategory(user, filter.getCategory())
                     .stream()
                     .filter(e -> e.getPaymentMethod().equals(filter.getPaymentMethod()))
                     .collect(Collectors.toList());
         } else if (filter.getCategory() != null) {
-            expenses = expenseRepository.findByCategory(filter.getCategory());
+            expenses = expenseRepository.findByUserAndCategory(user, filter.getCategory());
         } else if (filter.getPaymentMethod() != null) {
-            expenses = expenseRepository.findByPaymentMethod(filter.getPaymentMethod());
+            expenses = expenseRepository.findByUserAndPaymentMethod(user, filter.getPaymentMethod());
         } else {
-            expenses = getAllExpenses();
+            expenses = getAllExpenses(user);
         }
-        
+
         // Apply additional filters
         if (filter.getUpiVpa() != null && !filter.getUpiVpa().trim().isEmpty()) {
             expenses = expenses.stream()
-                    .filter(e -> e.getUpiVpa() != null && 
+                    .filter(e -> e.getUpiVpa() != null &&
                             e.getUpiVpa().toLowerCase().contains(filter.getUpiVpa().toLowerCase()))
                     .collect(Collectors.toList());
         }
-        
+
         if (filter.getTransactionId() != null && !filter.getTransactionId().trim().isEmpty()) {
             expenses = expenses.stream()
-                    .filter(e -> e.getTransactionId() != null && 
+                    .filter(e -> e.getTransactionId() != null &&
                             e.getTransactionId().toLowerCase().contains(filter.getTransactionId().toLowerCase()))
                     .collect(Collectors.toList());
         }
-        
+
         return expenses;
     }
     
@@ -253,7 +276,7 @@ public class ExpenseService {
     public ExpenseSummaryDTO getExpenseSummary(User user) {
         logger.debug("Generating expense summary for user: {}", user.getUsername());
 
-        List<Expense> allExpenses = expenseRepository.findAll(); // TODO: Filter by user when user field is added to Expense
+        List<Expense> allExpenses = expenseRepository.findByUser(user);
 
         BigDecimal totalAmount = allExpenses.stream()
                 .map(Expense::getAmount)
@@ -298,13 +321,14 @@ public class ExpenseService {
     }
     
     /**
-     * Gets all distinct categories
-     * 
+     * Gets all distinct categories for a user
+     *
+     * @param user the user to filter by
      * @return list of distinct categories
      */
     @Transactional(readOnly = true)
-    public List<String> getDistinctCategories() {
-        return expenseRepository.findDistinctCategories();
+    public List<String> getDistinctCategories(User user) {
+        return expenseRepository.findDistinctCategoriesByUser(user);
     }
     
     /**

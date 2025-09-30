@@ -1,16 +1,16 @@
 package com.expensetracker.app.repository;
 
-import com.expensetracker.app.model.Expense;
-import com.expensetracker.app.model.PaymentMethod;
+import java.time.LocalDate;
+import java.util.List;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Map;
+import com.expensetracker.app.model.Expense;
+import com.expensetracker.app.model.PaymentMethod;
+import com.expensetracker.app.model.User;
 
 /**
  * Repository interface for Expense entity operations.
@@ -23,8 +23,114 @@ import java.util.Map;
 public interface ExpenseRepository extends JpaRepository<Expense, Long> {
     
     /**
+     * Find expenses by user
+     *
+     * @param user the user to filter by
+     * @return list of expenses for the specified user
+     */
+    List<Expense> findByUser(User user);
+
+    /**
+     * Find expenses by user and category
+     *
+     * @param user the user to filter by
+     * @param category the category to filter by
+     * @return list of expenses for the specified user and category
+     */
+    List<Expense> findByUserAndCategory(User user, String category);
+
+    /**
+     * Find expenses by user and payment method
+     *
+     * @param user the user to filter by
+     * @param paymentMethod the payment method to filter by
+     * @return list of expenses for the specified user and payment method
+     */
+    List<Expense> findByUserAndPaymentMethod(User user, PaymentMethod paymentMethod);
+
+    /**
+     * Find expenses by user within a date range
+     *
+     * @param user the user to filter by
+     * @param startDate the start date (inclusive)
+     * @param endDate the end date (inclusive)
+     * @return list of expenses for the specified user within the date range
+     */
+    List<Expense> findByUserAndExpenseDateBetween(User user, LocalDate startDate, LocalDate endDate);
+
+    /**
+     * Find expenses by user, category and date range
+     *
+     * @param user the user to filter by
+     * @param category the category to filter by
+     * @param startDate the start date (inclusive)
+     * @param endDate the end date (inclusive)
+     * @return list of expenses matching the criteria
+     */
+    List<Expense> findByUserAndCategoryAndExpenseDateBetween(User user, String category, LocalDate startDate, LocalDate endDate);
+
+    /**
+     * Find expenses by user, payment method and date range
+     *
+     * @param user the user to filter by
+     * @param paymentMethod the payment method to filter by
+     * @param startDate the start date (inclusive)
+     * @param endDate the end date (inclusive)
+     * @return list of expenses matching the criteria
+     */
+    List<Expense> findByUserAndPaymentMethodAndExpenseDateBetween(User user, PaymentMethod paymentMethod, LocalDate startDate, LocalDate endDate);
+
+    /**
+     * Find expenses by user, category, payment method and date range
+     *
+     * @param user the user to filter by
+     * @param category the category to filter by
+     * @param paymentMethod the payment method to filter by
+     * @param startDate the start date (inclusive)
+     * @param endDate the end date (inclusive)
+     * @return list of expenses matching all criteria
+     */
+    List<Expense> findByUserAndCategoryAndPaymentMethodAndExpenseDateBetween(
+            User user, String category, PaymentMethod paymentMethod, LocalDate startDate, LocalDate endDate);
+
+    /**
+     * Find expenses by user ordered by date (most recent first)
+     *
+     * @param user the user to filter by
+     * @return list of expenses for the specified user ordered by expense date descending
+     */
+    List<Expense> findByUserOrderByExpenseDateDesc(User user);
+
+    /**
+     * Find expenses by user and UPI VPA
+     *
+     * @param user the user to filter by
+     * @param upiVpa the UPI VPA to search for
+     * @return list of expenses for the specified user with the specified UPI VPA
+     */
+    List<Expense> findByUserAndUpiVpaContainingIgnoreCase(User user, String upiVpa);
+
+    /**
+     * Find expenses by user and transaction ID
+     *
+     * @param user the user to filter by
+     * @param transactionId the transaction ID to search for
+     * @return list of expenses for the specified user with the specified transaction ID
+     */
+    List<Expense> findByUserAndTransactionIdContainingIgnoreCase(User user, String transactionId);
+
+    /**
+     * Get distinct categories for a user
+     *
+     * @param user the user to filter by
+     * @return list of distinct categories for the specified user
+     */
+    @Query("SELECT DISTINCT e.category FROM Expense e WHERE e.user = :user ORDER BY e.category")
+    List<String> findDistinctCategoriesByUser(@Param("user") User user);
+
+    /**
      * Find expenses by category
-     * 
+     *
      * @param category the category to filter by
      * @return list of expenses in the specified category
      */

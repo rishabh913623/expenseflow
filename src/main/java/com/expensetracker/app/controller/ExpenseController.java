@@ -58,10 +58,22 @@ public class ExpenseController {
         this.csvExportService = csvExportService;
         this.authService = authService;
     }
+
+    /**
+     * Helper method to get authenticated user from token
+     *
+     * @param token the JWT token
+     * @return the authenticated user
+     */
+    private User getAuthenticatedUser(String token) {
+        String username = authService.validateTokenAndGetUsername(token.replace("Bearer ", ""));
+        return authService.getUserByUsername(username);
+    }
     
     /**
-     * Get all expenses or filtered expenses
-     * 
+     * Get all expenses or filtered expenses for authenticated user
+     *
+     * @param token the JWT token
      * @param category optional category filter
      * @param paymentMethod optional payment method filter
      * @param startDate optional start date filter (yyyy-MM-dd)
@@ -72,20 +84,22 @@ public class ExpenseController {
      */
     @GetMapping
     public ResponseEntity<List<Expense>> getAllExpenses(
+            @RequestHeader("Authorization") String token,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) PaymentMethod paymentMethod,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @RequestParam(required = false) String upiVpa,
             @RequestParam(required = false) String transactionId) {
-        
-        logger.debug("GET /api/expenses - category: {}, paymentMethod: {}, startDate: {}, endDate: {}", 
+
+        logger.debug("GET /api/expenses - category: {}, paymentMethod: {}, startDate: {}, endDate: {}",
                     category, paymentMethod, startDate, endDate);
-        
+
         try {
+            User user = getAuthenticatedUser(token);
             ExpenseFilterDTO filter = new ExpenseFilterDTO(category, paymentMethod, startDate, endDate, upiVpa, transactionId);
-            List<Expense> expenses = expenseService.getFilteredExpenses(filter);
-            
+            List<Expense> expenses = expenseService.getFilteredExpenses(filter, user);
+
             return ResponseEntity.ok(expenses);
         } catch (Exception e) {
             logger.error("Error retrieving expenses", e);
@@ -94,17 +108,19 @@ public class ExpenseController {
     }
     
     /**
-     * Get expense by ID
-     * 
+     * Get expense by ID for authenticated user
+     *
      * @param id the expense ID
+     * @param token the JWT token
      * @return the expense
      */
     @GetMapping("/{id}")
-    public ResponseEntity<Expense> getExpenseById(@PathVariable Long id) {
+    public ResponseEntity<Expense> getExpenseById(@PathVariable Long id, @RequestHeader("Authorization") String token) {
         logger.debug("GET /api/expenses/{}", id);
-        
+
         try {
-            Expense expense = expenseService.getExpenseById(id);
+            User user = getAuthenticatedUser(token);
+            Expense expense = expenseService.getExpenseById(id, user);
             return ResponseEntity.ok(expense);
         } catch (IllegalArgumentException e) {
             logger.warn("Expense not found with ID: {}", id);
@@ -116,17 +132,19 @@ public class ExpenseController {
     }
     
     /**
-     * Create a new expense
-     * 
+     * Create a new expense for authenticated user
+     *
      * @param expense the expense to create
+     * @param token the JWT token
      * @return the created expense
      */
     @PostMapping
-    public ResponseEntity<Expense> createExpense(@Valid @RequestBody Expense expense) {
+    public ResponseEntity<Expense> createExpense(@Valid @RequestBody Expense expense, @RequestHeader("Authorization") String token) {
         logger.debug("POST /api/expenses - {}", expense);
-        
+
         try {
-            Expense createdExpense = expenseService.createExpense(expense);
+            User user = getAuthenticatedUser(token);
+            Expense createdExpense = expenseService.createExpense(expense, user);
             return ResponseEntity.status(HttpStatus.CREATED).body(createdExpense);
         } catch (IllegalArgumentException e) {
             logger.warn("Invalid expense data: {}", e.getMessage());
@@ -138,18 +156,20 @@ public class ExpenseController {
     }
     
     /**
-     * Update an existing expense
-     * 
+     * Update an existing expense for authenticated user
+     *
      * @param id the expense ID
      * @param expense the updated expense data
+     * @param token the JWT token
      * @return the updated expense
      */
     @PutMapping("/{id}")
-    public ResponseEntity<Expense> updateExpense(@PathVariable Long id, @Valid @RequestBody Expense expense) {
+    public ResponseEntity<Expense> updateExpense(@PathVariable Long id, @Valid @RequestBody Expense expense, @RequestHeader("Authorization") String token) {
         logger.debug("PUT /api/expenses/{} - {}", id, expense);
-        
+
         try {
-            Expense updatedExpense = expenseService.updateExpense(id, expense);
+            User user = getAuthenticatedUser(token);
+            Expense updatedExpense = expenseService.updateExpense(id, expense, user);
             return ResponseEntity.ok(updatedExpense);
         } catch (IllegalArgumentException e) {
             logger.warn("Error updating expense: {}", e.getMessage());
@@ -161,17 +181,19 @@ public class ExpenseController {
     }
     
     /**
-     * Delete an expense
-     * 
+     * Delete an expense for authenticated user
+     *
      * @param id the expense ID
+     * @param token the JWT token
      * @return no content response
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteExpense(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteExpense(@PathVariable Long id, @RequestHeader("Authorization") String token) {
         logger.debug("DELETE /api/expenses/{}", id);
-        
+
         try {
-            expenseService.deleteExpense(id);
+            User user = getAuthenticatedUser(token);
+            expenseService.deleteExpense(id, user);
             return ResponseEntity.noContent().build();
         } catch (IllegalArgumentException e) {
             logger.warn("Expense not found with ID: {}", id);
@@ -257,16 +279,18 @@ public class ExpenseController {
     }
     
     /**
-     * Get all distinct categories
-     * 
+     * Get all distinct categories for authenticated user
+     *
+     * @param token the JWT token
      * @return list of categories
      */
     @GetMapping("/categories")
-    public ResponseEntity<List<String>> getCategories() {
+    public ResponseEntity<List<String>> getCategories(@RequestHeader("Authorization") String token) {
         logger.debug("GET /api/expenses/categories");
-        
+
         try {
-            List<String> categories = expenseService.getDistinctCategories();
+            User user = getAuthenticatedUser(token);
+            List<String> categories = expenseService.getDistinctCategories(user);
             return ResponseEntity.ok(categories);
         } catch (Exception e) {
             logger.error("Error retrieving categories", e);
@@ -275,8 +299,9 @@ public class ExpenseController {
     }
     
     /**
-     * Export expenses to CSV
-     * 
+     * Export expenses to CSV for authenticated user
+     *
+     * @param token the JWT token
      * @param category optional category filter
      * @param paymentMethod optional payment method filter
      * @param startDate optional start date filter
@@ -285,22 +310,24 @@ public class ExpenseController {
      */
     @GetMapping("/export/csv")
     public ResponseEntity<String> exportExpensesToCsv(
+            @RequestHeader("Authorization") String token,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) PaymentMethod paymentMethod,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        
+
         logger.debug("GET /api/expenses/export/csv");
-        
+
         try {
+            User user = getAuthenticatedUser(token);
             ExpenseFilterDTO filter = new ExpenseFilterDTO(category, paymentMethod, startDate, endDate, null, null);
-            List<Expense> expenses = expenseService.getFilteredExpenses(filter);
+            List<Expense> expenses = expenseService.getFilteredExpenses(filter, user);
             String csvContent = csvExportService.exportExpensesToCsv(expenses);
-            
+
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.parseMediaType("text/csv"));
             headers.setContentDispositionFormData("attachment", csvExportService.getCsvFilename());
-            
+
             return ResponseEntity.ok()
                     .headers(headers)
                     .body(csvContent);

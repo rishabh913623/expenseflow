@@ -1,11 +1,28 @@
 package com.expensetracker.app.model;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
-import com.fasterxml.jackson.annotation.JsonFormat;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 /**
  * Entity class representing an expense in the expense tracker application.
@@ -21,7 +38,12 @@ public class Expense {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
+    @NotNull(message = "User is required")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
     @NotNull(message = "Amount is required")
     @DecimalMin(value = "0.01", message = "Amount must be greater than 0")
     @Column(name = "amount", nullable = false, precision = 10, scale = 2)
@@ -81,11 +103,12 @@ public class Expense {
     /**
      * Constructor with basic fields
      */
-    public Expense(BigDecimal amount, String category, LocalDate expenseDate, PaymentMethod paymentMethod) {
+    public Expense(BigDecimal amount, String category, LocalDate expenseDate, PaymentMethod paymentMethod, User user) {
         this.amount = amount;
         this.category = category;
         this.expenseDate = expenseDate;
         this.paymentMethod = paymentMethod;
+        this.user = user;
         updateAmountFields();
     }
     
@@ -129,7 +152,15 @@ public class Expense {
     public void setId(Long id) {
         this.id = id;
     }
-    
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
     public BigDecimal getAmount() {
         return amount;
     }
@@ -232,6 +263,7 @@ public class Expense {
     public String toString() {
         return "Expense{" +
                 "id=" + id +
+                ", user=" + (user != null ? user.getUsername() : null) +
                 ", amount=" + amount +
                 ", category='" + category + '\'' +
                 ", expenseDate=" + expenseDate +
