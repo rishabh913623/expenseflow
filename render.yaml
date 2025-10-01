@@ -2,3 +2,31 @@ services:
   - type: web
     name: expenseflow
     runtime: docker
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: expenseflow-db
+          property: connectionString
+      - key: DB_USERNAME
+        fromDatabase:
+          name: expenseflow-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: expenseflow-db
+          property: password
+      - key: DB_DRIVER
+        value: org.postgresql.Driver
+      - key: HIBERNATE_DIALECT
+        value: org.hibernate.dialect.PostgreSQLDialect
+      - key: H2_CONSOLE_ENABLED
+        value: false
+      - key: SHOW_SQL
+        value: false
+      - key: FORMAT_SQL
+        value: false
+
+databases:
+  - name: expenseflow-db
+    databaseName: expenseflow
+    user: expenseflow_user

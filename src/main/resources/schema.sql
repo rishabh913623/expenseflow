@@ -3,7 +3,7 @@
 
 -- Create users table
 CREATE TABLE IF NOT EXISTS users (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
     email VARCHAR(100) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
@@ -19,7 +19,7 @@ CREATE INDEX IF NOT EXISTS idx_created_at ON users (created_at);
 
 -- Create expenses table
 CREATE TABLE IF NOT EXISTS expenses (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL,
     amount DECIMAL(10, 2) NOT NULL CHECK (amount > 0),
     category VARCHAR(50) NOT NULL,
@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS expenses (
     payer_name VARCHAR(100),
 
     -- Common fields
-    notes CLOB,
+    notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
@@ -52,7 +52,7 @@ CREATE INDEX IF NOT EXISTS idx_created_at ON expenses (created_at);
 
 -- Create categories table for reference (optional enhancement)
 CREATE TABLE IF NOT EXISTS categories (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     name VARCHAR(50) NOT NULL UNIQUE,
     description TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
